@@ -48,8 +48,9 @@ with st.sidebar:
 # ==========================================
 # 3. 核心：超輕量文本即時解析器 (免 Embedding / 免重型庫)
 # ==========================================
-@st.cache_resource(show_spinner="🏛️ 正在即時加載並建立中英文官方文件索引 (3秒極速)...")
-def load_and_index_text_v2():
+# 💡 關鍵修改：改用 data cache，並強制關閉容易卡死的 spinner 動畫
+@st.cache_data(show_spinner=False)
+def load_and_index_text_final():
     pdf_files = {
         "tc": "PCPD_ai_protection_framework_tc.pdf",
         "en": "PCPD_ai_protection_framework_en.pdf"
@@ -75,8 +76,8 @@ def load_and_index_text_v2():
                 pass
     return documents
 
-# ⚠️ 這裡就是破壞舊有卡死快取的關鍵，改為呼叫 _v2 版本
-all_indexed_docs = load_and_index_text_v2()
+# 呼叫 final 版本
+all_indexed_docs = load_and_index_text_final()
 
 # 輕量級即時關鍵字與語義關聯匹配引擎
 def lightweight_retrieve(query, lang_key, top_k=4):
