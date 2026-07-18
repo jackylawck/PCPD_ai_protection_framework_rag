@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-from langchain_community.document_loaders import PyPDFLoader # 保持相容或改用純 pypdf
 from pypdf import PdfReader
 import requests
 
@@ -67,7 +66,7 @@ def load_and_index_text():
                         # 以段落切片
                         paragraphs = text.split("\n\n")
                         for p in paragraphs:
-                            if len(p.strip()) > 30: # 過濾雜訊
+                            if len(p.strip()) > 30: # 过滤雜訊
                                 documents[lang_key].append({
                                     "page": page_num + 1,
                                     "content": p.strip()
@@ -125,7 +124,7 @@ def call_free_llm(prompt_text):
         return f"❌ 連線超時，請重新提交查詢。Error: {str(e)}"
 
 # ==========================================
-# 4. 主畫面與 智能互動
+# 4. 主畫面與智能互動
 # ==========================================
 st.title("🏛️ " + ("PCPD 模範框架智能顧問系統" if is_zh else "PCPD AI Model Framework Advisor"))
 st.markdown("本系統採用**免金鑰、輕量化即時文本檢索架構**。您可以直接以自然語言輸入複雜的合規場景進行諮詢。" if is_zh else "Query PCPD 2024 compliance scenarios in natural language (100% Free & Zero-Lag):")
