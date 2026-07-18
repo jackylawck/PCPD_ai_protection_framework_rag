@@ -36,7 +36,7 @@ st.markdown("""
     .stCheckbox > label {font-weight: 500;}
     .audit-trail {font-family: 'Courier New', Courier, monospace; color: #a1a1a1; font-size: 0.8em; margin-top: 10px; border-top: 1px dashed #ced4da; padding-top: 5px;}
     
-    /* 🎯 核心修正：全主題適應硬化版 CSS 標籤 */
+    /* 全主題適應硬化版 CSS 標籤 */
     .source-tag {
         background-color: #e9ecef !important; 
         border-left: 4px solid #007bff !important; 
@@ -54,7 +54,7 @@ if 'messages' not in st.session_state:
     st.session_state.messages = []
 
 # ==========================================
-# 2. RAG 本地向量資料庫引擎 (FAISS + SentenceTransformers)
+# 2. RAG 本地向量資料庫引擎 (純地端安全架構)
 # ==========================================
 @st.cache_resource(show_spinner="🛡️ 正在初始化本地 Embedding 引擎...")
 def get_embedding_model():
@@ -94,14 +94,14 @@ def process_pdf_to_chunks(pdf_path):
 
 @st.cache_resource(show_spinner="📚 向量資料庫正在掃描並加載官方 PCPD PDF 文件...")
 def initialize_vector_db():
-    """動態鎖定專案真實絕對路徑，構建 FAISS 向量資料庫"""
+    """動態鎖定專案真實絕對路徑，構建企業級本地向量庫"""
     embeddings = get_embedding_model()
     all_chunks = []
     
     # 獲取當前 app.py 所在的絕對路徑目錄
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 掃描該目錄下所有以 .pdf 結尾的檔案 (會自動抓取 PCPD 中英文版)
+    # 掃描該目錄下所有以 .pdf 結尾的檔案
     pdf_files = [os.path.join(current_dir, f) for f in os.listdir(current_dir) if f.endswith('.pdf')]
     
     for pdf_path in pdf_files:
@@ -109,7 +109,7 @@ def initialize_vector_db():
         
     if all_chunks:
         vector_db = FAISS.from_documents(all_chunks, embeddings)
-        logging.info(f"FAISS DB successfully built with {len(all_chunks)} chunks from {len(pdf_files)} PDFs.")
+        logging.info(f"Vector DB successfully built with {len(all_chunks)} chunks from {len(pdf_files)} PDFs.")
         return vector_db, len(pdf_files), len(all_chunks)
     else:
         return None, 0, 0
@@ -131,16 +131,17 @@ def generate_and_log_audit_trail(query, response_text):
 # 4. 主畫面佈局渲染
 # ==========================================
 st.title("🏛️ PCPD 模範框架智能顧問系統")
-st.subheader("RAG FAISS 向量資料庫架構 • 具備高透明度法規追溯與語意檢索")
+# 🎯 核心修改：移除硬技術字眼 (RAG FAISS)，全面轉換為高管級管治表述
+st.subheader("企業級合規審計架構 • 具備高透明度官方條文追溯與語意檢索")
 
 with st.sidebar:
     st.header("📊 向量資料庫審計監控")
     st.metric("已加載官方 PDF 數量", f"{PDF_COUNT} 份")
     st.metric("解構法規文字切片 (Chunks)", f"{CHUNK_COUNT} 個")
     st.markdown("---")
-    st.markdown("💡 **企業管治提示：** 本系統採用純本地 FAISS 架構。系統會動態掃描並索引目錄下的 PCPD 文件，提供零延遲、無幻覺的合規條文追溯。")
+    st.markdown("💡 **企業管治提示：** 本系統採用純本地數據庫架構。系統會動態掃描並索引目錄下的 PCPD 文件，提供零延遲、無幻覺的合規條文追溯，確保符合最高級別的隱私與審計標準。")
 
-tab_chat, tab_audit = st.tabs(["💬 官方指引情境導航 (RAG)", "📋 基礎風險排查"])
+tab_chat, tab_audit = st.tabs(["💬 官方指引情境導航", "📋 基礎風險排查"])
 
 with tab_chat:
     for msg in st.session_state.messages:
@@ -159,9 +160,9 @@ with tab_chat:
                 st.error("🛑 **系統管治警報：** 未偵測到任何官方 PDF 檔案！請檢查目錄下的 PDF 部署狀態。")
                 final_response = "未偵測到知識庫文件。"
             else:
-                # 執行向量空間語意檢索 (Semantic Vector Search)
+                # 執行向量空間語意檢索
                 docs_and_scores = VECTOR_DB.similarity_search_with_score(prompt, k=3)
-                st.success("🎯 **RAG 語意檢索完成！已為您勾勒出最高相關度之官方原始條文：**")
+                st.success("🎯 **語意檢索完成！已為您勾勒出最高相關度之官方原始條文：**")
                 
                 for doc, score in docs_and_scores:
                     # 歐氏距離分數歸一化
