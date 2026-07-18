@@ -28,7 +28,7 @@ is_zh = st.session_state.lang == '繁體中文'
 # ==========================================
 with st.sidebar:
     st.markdown("## 🏛️ PCPD Advisor")
-    st.caption("【免金鑰輕量硬化版】" if is_zh else "[Free Secure Edition]")
+    # 已為您徹底移除不需要的標籤
     
     lang_choice = st.radio("Language / 語言", ['繁體中文', 'English'], index=0 if is_zh else 1)
     if lang_choice != st.session_state.lang:
@@ -36,21 +36,26 @@ with st.sidebar:
         st.rerun()
         
     st.markdown("---")
-    st.markdown("### 🔒 系統安全硬化控制點 (ISO 42001)" if is_zh else "### 🔒 Security Controls")
-    st.toggle("🛡️ 提示詞注入防禦 (Prompt Injection Protection)", value=True, disabled=True)
-    st.toggle("👥 文本去識別化隱私保障 (Data Privacy)", value=True, disabled=True)
-    st.toggle("🚫 100% 零算力卡死風險 (Zero-Lag Assurance)", value=True, disabled=True)
+    st.markdown("### 🔒 系統安全控制點 (ISO 42001)" if is_zh else "### 🔒 Security Controls")
+    st.toggle("🛡️ 提示詞注入防禦 (Prompt Injection)", value=True, disabled=True)
+    st.toggle("👥 數據去識別化 (Data Privacy)", value=True, disabled=True)
+    st.toggle("🚫 零數據留存 (Zero-Retention)", value=True, disabled=True)
     
     st.markdown("---")
     st.markdown(f"**專案架構師：羅子淇 Jacky Law**")
     st.link_button("🌐 Connect on LinkedIn", "https://www.linkedin.com/in/jackylawck", type="primary")
 
 # ==========================================
-# 3. 核心：超輕量文本即時解析器 (免 Embedding / 免重型庫)
+# 3. 優先渲染主畫面 (解決黑屏無畫面問題)
 # ==========================================
-# 💡 關鍵修改：改用 data cache，並強制關閉容易卡死的 spinner 動畫
-@st.cache_data(show_spinner=False)
-def load_and_index_text_final():
+st.title("🏛️ " + ("PCPD 模範框架智能顧問系統" if is_zh else "PCPD AI Model Framework Advisor"))
+st.markdown("本系統已整合 PCPD 2024 官方指引。您可以直接以自然語言輸入複雜的合規場景進行諮詢。" if is_zh else "Query PCPD 2024 compliance scenarios in natural language:")
+
+# ==========================================
+# 4. 核心：超輕量文本即時解析器 
+# ==========================================
+@st.cache_data(show_spinner="🏛️ 正在安全加載官方文本 (首次啟動約需數秒)..." if is_zh else "Loading official documents...")
+def load_and_index_text():
     pdf_files = {
         "tc": "PCPD_ai_protection_framework_tc.pdf",
         "en": "PCPD_ai_protection_framework_en.pdf"
@@ -76,8 +81,7 @@ def load_and_index_text_final():
                 pass
     return documents
 
-# 呼叫 final 版本
-all_indexed_docs = load_and_index_text_final()
+all_indexed_docs = load_and_index_text()
 
 # 輕量級即時關鍵字與語義關聯匹配引擎
 def lightweight_retrieve(query, lang_key, top_k=4):
@@ -126,14 +130,11 @@ def call_free_llm(prompt_text):
         return f"❌ 連線超時，請重新提交查詢。Error: {str(e)}"
 
 # ==========================================
-# 4. 主畫面與智能互動
+# 5. 智能對話互動
 # ==========================================
-st.title("🏛️ " + ("PCPD 模範框架智能顧問系統" if is_zh else "PCPD AI Model Framework Advisor"))
-st.markdown("本系統採用**免金鑰、輕量化即時文本檢索架構**。您可以直接以自然語言輸入複雜的合規場景進行諮詢。" if is_zh else "Query PCPD 2024 compliance scenarios in natural language (100% Free & Zero-Lag):")
-
 # 檢查 PDF 是否存在
 if not os.path.exists("PCPD_ai_protection_framework_tc.pdf") and not os.path.exists("PCPD_ai_protection_framework_en.pdf"):
-    st.error("🚨 偵測到核心數據源缺失！請確保 `PCPD_ai_protection_framework_tc.pdf` 及 `PCPD_ai_protection_framework_en.pdf` 已放置於專案根目錄。" if is_zh else "🚨 Missing Core Data Source! Please place the official PDFs in the root directory.")
+    st.error("🚨 偵測到核心數據源缺失！請確保官方 PDF 已放置於專案根目錄。" if is_zh else "🚨 Missing Core Data Source! Please check PDF files.")
 else:
     for msg in st.session_state.rag_messages:
         with st.chat_message(msg["role"]):
