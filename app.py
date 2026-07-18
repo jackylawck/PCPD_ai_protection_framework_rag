@@ -1,5 +1,15 @@
-import streamlit as st
+# ==========================================
+# 0. 底層資料庫覆蓋 (解決 Streamlit Cloud ChromaDB 卡死死穴)
+# ==========================================
 import os
+import sys
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
+import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
