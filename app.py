@@ -49,7 +49,7 @@ with st.sidebar:
 # 3. 核心：超輕量文本即時解析器 (免 Embedding / 免重型庫)
 # ==========================================
 @st.cache_resource(show_spinner="🏛️ 正在即時加載並建立中英文官方文件索引 (3秒極速)...")
-def load_and_index_text():
+def load_and_index_text_v2():
     pdf_files = {
         "tc": "PCPD_ai_protection_framework_tc.pdf",
         "en": "PCPD_ai_protection_framework_en.pdf"
@@ -66,7 +66,7 @@ def load_and_index_text():
                         # 以段落切片
                         paragraphs = text.split("\n\n")
                         for p in paragraphs:
-                            if len(p.strip()) > 30: # 过滤雜訊
+                            if len(p.strip()) > 30: # 過濾雜訊
                                 documents[lang_key].append({
                                     "page": page_num + 1,
                                     "content": p.strip()
@@ -75,7 +75,8 @@ def load_and_index_text():
                 pass
     return documents
 
-all_indexed_docs = load_and_index_text()
+# ⚠️ 這裡就是破壞舊有卡死快取的關鍵，改為呼叫 _v2 版本
+all_indexed_docs = load_and_index_text_v2()
 
 # 輕量級即時關鍵字與語義關聯匹配引擎
 def lightweight_retrieve(query, lang_key, top_k=4):
