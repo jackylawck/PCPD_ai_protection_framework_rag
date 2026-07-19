@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import hashlib
 import logging
+import time
 from datetime import datetime
 
 # 100% 純地端開源組件 (零外洩、免金鑰、100% 免費運算架構)
@@ -29,7 +30,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 使用 !important 強制鎖定高對比色彩，徹底粉碎暗黑模式引發的「白底白字」技術缺陷
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -100,7 +100,7 @@ def process_uploaded_pdf(uploaded_file):
 # ==========================================
 # 3. 本地開源語義嵌入模型快取 (載入極速優化)
 # ==========================================
-@st.cache_resource(show_spinner="🛡️ 正在初始化本地開源 Embedding 引擎 (首次加載約需 30 秒)...")
+@st.cache_resource(show_spinner=False)
 def get_local_model():
     return SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 
@@ -151,7 +151,6 @@ with st.sidebar:
 # 6. 互動對話與 RAG 推理核心
 # ==========================================
 
-# 情況 A：用戶尚未上傳文件，顯示引導與免責聲明卡
 if not uploaded_files or len(dynamic_chunks) == 0:
     st.info("### 💡 歡迎使用 PCPD AI 合規自查工作站")
     st.markdown(
@@ -165,9 +164,21 @@ if not uploaded_files or len(dynamic_chunks) == 0:
         """
     )
 
-# 情況 B：用戶已上傳文件，動態構建 FAISS 向量庫並解鎖對話
 else:
-    model = get_local_model()
+    # 🎯 倒數計時優化點 1：首次或重新加載 Embedding 模型時的進度條
+    if 'model_loaded' not in st.session_state:
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        for percent_complete in range(0, 101, 10):
+            status_text.markdown(f"⏳ **正在初始化地端 Embedding 引擎... (預計首次需 30 秒，倒數剩餘大約 {max(0, 3 - percent_complete//33)} 秒)**")
+            progress_bar.progress(percent_complete)
+            time.sleep(0.3)
+        model = get_local_model()
+        progress_bar.empty()
+        status_text.empty()
+        st.session_state.model_loaded = True
+    else:
+        model = get_local_model()
     
     # 在記憶體中即時建立 FAISS 索引庫
     texts = [c["text"] for c in dynamic_chunks]
@@ -187,45 +198,55 @@ else:
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("🔍 正在計算語義空間並比對您上傳的官方文本中..."):
+            # 🎯 倒數計時優化點 2：查詢時的動態倒數進度條 (預估 3 秒)
+            query_progress = st.progress(0)
+            query_status = st.empty()
+            
+            for p in range(0, 101, 20):
+                query_status.markdown(f"🔍 **正在計算高維語義空間... (預計大約需 3 秒，倒數 {(100-p)//33 + 1} 秒)**")
+                query_progress.progress(p)
+                time.sleep(0.5)
                 
-                # 1. 向量化查詢詞
-                query_vector = model.encode([prompt], show_progress_bar=False)
-                faiss.normalize_L2(query_vector)
+            # 1. 向量化查詢詞
+            query_vector = model.encode([prompt], show_progress_bar=False)
+            faiss.normalize_L2(query_vector)
+            
+            # 2. 檢索前 3 個相關度最高的官方切片
+            scores, indices = index.search(query_vector, k=3)
+            
+            # 清除進度條與狀態文字
+            query_progress.empty()
+            query_status.empty()
+            
+            st.success("🎯 **語意檢索完成！已從您上傳的文件中勾勒出核心關聯條文：**")
+            
+            final_response_text = ""
+            citations_html = ""
+            
+            # 3. 渲染官方真實條文段落，杜絕模型加工幻覺
+            for i, idx in enumerate(indices[0]):
+                chunk = dynamic_chunks[idx]
+                confidence = scores[0][i] * 100
                 
-                # 2. 檢索前 3 個相關度最高的官方切片
-                scores, indices = index.search(query_vector, k=3)
+                if confidence < 30: continue
                 
-                st.success("🎯 **語意檢索完成！已從您上傳的文件中勾勒出核心關聯條文：**")
+                st.markdown(f"**【官方原始條文段落 {i+1}】**")
+                st.markdown(f"<div class='official-text'>{chunk['text']}</div>", unsafe_allow_html=True)
                 
-                final_response_text = ""
-                citations_html = ""
+                source_tag = f"<div class='source-tag'>🔍 <b>審計追溯鏈 (Traceability Link):</b> Doc_ID: {chunk['hash']} | 檔案: {chunk['source']} (第 {chunk['page']} 頁) | 匹配度: {confidence:.1f}%</div>"
+                st.markdown(source_tag, unsafe_allow_html=True)
                 
-                # 3. 渲染官方真實條文段落，杜絕模型加工幻覺
-                for i, idx in enumerate(indices[0]):
-                    chunk = dynamic_chunks[idx]
-                    confidence = scores[0][i] * 100
-                    
-                    # 阻斷低相關度的雜訊干擾
-                    if confidence < 30: continue
-                    
-                    st.markdown(f"**【官方原始條文段落 {i+1}】**")
-                    st.markdown(f"<div class='official-text'>{chunk['text']}</div>", unsafe_allow_html=True)
-                    
-                    source_tag = f"<div class='source-tag'>🔍 <b>審計追溯鏈 (Traceability Link):</b> Doc_ID: {chunk['hash']} | 檔案: {chunk['source']} (第 {chunk['page']} 頁) | 匹配度: {confidence:.1f}%</div>"
-                    st.markdown(source_tag, unsafe_allow_html=True)
-                    
-                    final_response_text += f"\n[段落 {i+1}] {chunk['text']}\n"
-                    citations_html += source_tag
-                
-                if not final_response_text:
-                    st.warning("⚠️ 依據 PCPD 審查基準：未在文件中檢索到高度相關的規範條文，系統依法拒絕給出衍生性推論，以避免造成合規幻覺。")
-                    final_response_text = "未檢索到相關條文。"
-                
-                # 4. 生成並記錄不可篡改的加密審計軌跡
-                audit_html = generate_and_log_audit_trail(prompt, final_response_text)
-                st.markdown(audit_html, unsafe_allow_html=True)
-                
-                # 5. 壓入對話記憶快取
-                full_display = final_response_text + "\n\n" + citations_html + audit_html
-                st.session_state.messages.append({"role": "assistant", "content": full_display})
+                final_response_text += f"\n[段落 {i+1}] {chunk['text']}\n"
+                citations_html += source_tag
+            
+            if not final_response_text:
+                st.warning("⚠️ 依據 PCPD 審查基準：未在文件中檢索到高度相關的規範條文，系統依法拒絕給出衍生性推論，以避免造成合規幻覺。")
+                final_response_text = "未檢索到相關條文。"
+            
+            # 4. 生成並記錄不可篡改的加密審計軌跡
+            audit_html = generate_and_log_audit_trail(prompt, final_response_text)
+            st.markdown(audit_html, unsafe_allow_html=True)
+            
+            # 5. 壓入對話記憶快取
+            full_display = final_response_text + "\n\n" + citations_html + audit_html
+            st.session_state.messages.append({"role": "assistant", "content": full_display})
