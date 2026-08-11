@@ -13,7 +13,7 @@
 * **System Name / 系統名稱**: PCPD AI Framework Dynamic Zero-Retention RAG Advisor (方案 B：動態零留存 RAG 沙盒)
 * **Model Version / 模型版本**: v2.1.0 (Enterprise RAG / 企業級 RAG 版)
 * **System Architecture / 系統架構**: Local Semantic Vector Retrieval-Augmented Generation (地端語意向量檢索增強生成 RAG)
-* **Governance & Development Lead / 管治與開發負責人**: Jacky Law 羅子淇 (Certified ISO 42001 Lead Auditor / AIGP Candidate)
+* **Governance & Development Lead / 管治與開發負責人**: Jacky Law 羅子淇
 * **Last Audit Date / 最近審計日期**: 2026-07-30
 * **Repository / 程式碼倉庫**: [jackylawck/PCPD_ai_protection_framework_rag](https://github.com/jackylawck/PCPD_ai_protection_framework_rag)
 
